@@ -293,6 +293,115 @@ mvn spring-boot:run
 - 数据库迁移：使用Flyway管理数据库版本和结构
    - 迁移脚本位于`src/main/resources/db/migration`目录
 
+
+
+## 数据库信息
+
+### 用户表 (users)
+
+```sql
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    role enum('SELLER', 'CUSTOMER') DEFAULT 'CUSTOMER' NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### 商品表 (products)
+```sql
+CREATE TABLE products (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL,
+    seller_id BIGINT NOT NULL,
+    type ENUM('VEGETABLE', 'FRUIT', 'GRAIN', 'MEAT', 'SEAFOOD', 'OTHER') DEFAULT 'VEGETABLE' NOT NULL,
+    image VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+```
+
+### 购物车表 (cart_items)
+```sql
+CREATE TABLE cart_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INT NOT NULL,
+    image VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+```
+
+### 订单表 (orders)
+```sql
+CREATE TABLE orders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_number VARCHAR(50) NOT NULL,
+    user_id BIGINT NOT NULL,
+    seller_id BIGINT NOT NULL,
+    receiver_name VARCHAR(50) NOT NULL,
+    receiver_phone VARCHAR(20) NOT NULL,
+    receiver_address VARCHAR(255) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status enum('PENDING_PAYMENT', 'PENDING_SHIPMENT', 'SHIPPED', 'PENDING_RECEIPT','COMPLETED', 'CANCELLED') DEFAULT 'PENDING_PAYMENT' NOT NULL,
+    tracking_number VARCHAR(50),
+    shipping_company VARCHAR(50),
+    create_time DATETIME NOT NULL,
+    pay_time DATETIME,
+    ship_time DATETIME,
+    complete_time DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+```
+
+### 订单项表 (order_items)
+```sql
+CREATE TABLE order_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+```
+
+### 用户表扩展字段 (users)
+```sql
+ALTER TABLE users
+ADD COLUMN real_name VARCHAR(50),
+ADD COLUMN phone VARCHAR(20),
+ADD COLUMN email VARCHAR(100),
+ADD COLUMN address VARCHAR(200);
+```
+
+### 索引信息
+```sql
+CREATE INDEX idx_user_id ON orders(user_id);
+CREATE INDEX idx_seller_id ON orders(seller_id);
+CREATE INDEX idx_order_number ON orders(order_number);
+CREATE INDEX idx_status ON orders(status);
+CREATE INDEX idx_order_id ON order_items(order_id);
+CREATE INDEX idx_product_id ON order_items(product_id);
+```
+
+
 ## 接口文档
 - 启动后端服务后，访问 Swagger 文档：`http://localhost:8080/swagger-ui.html`
 - API接口分类：
